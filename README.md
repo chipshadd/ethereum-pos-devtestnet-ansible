@@ -86,20 +86,20 @@ eg. (current_epoch + (`capella_fork_epoch` * slots_per_epoch * `seconds_per_slot
 ### Geth related settings
 ```
 geth: 
-	init:
-		extra_flags: list(string)
-	bootnode:
-		port: int
-		extra_flags: list(string)
-	node:
-		port: int
-		syncmode: string
-	http:
-		port: int
-	api: string
-	authrpc:
-		port: int
-	extra_flags: list(string)
+  init:
+   extra_flags: list(string)
+  bootnode:
+    port: int
+    extra_flags: list(string)
+  node:
+    port: int
+    syncmode: string
+    http:
+      port: int
+    api: string
+    authrpc:
+      port: int
+    extra_flags: list(string)
 ```
 - `geth:`
     - `init:`
