@@ -1,0 +1,35 @@
+
+    upstream gethnodes {
+{% for host in groups['nodes'] %}
+        server {{ hostvars[host]['ansible_facts']['default_ipv4']['address'] }}:{{ geth.node.http.port }};
+{% endfor %}
+    }
+
+    upstream beaconnodes {
+{% for host in groups['nodes'] %}
+        server {{ hostvars[host]['ansible_facts']['default_ipv4']['address'] }}:{{ lighthouse.beacon_node.http_port }};
+{% endfor %}
+    }
+
+
+
+    server {
+        listen {{ lb_port }};
+
+        location /geth/ {
+            proxy_pass http://gethnodes/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /bn/ {
+            proxy_pass http://beaconnodes/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+

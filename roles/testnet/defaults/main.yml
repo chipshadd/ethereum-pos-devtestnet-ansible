@@ -1,0 +1,4 @@
+# Seconds per slot
+mainnet: 32
+gnosis: 16
+minimal: 8

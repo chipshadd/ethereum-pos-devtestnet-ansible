@@ -1,0 +1,48 @@
+- name: Download geth binary in background
+  ansible.builtin.get_url:
+      url: "https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-amd64-{{ geth_version_commit }}.tar.gz"
+      dest: /tmp
+  register: geth_binary
+  async: 1000
+  poll: 0
+
+- name: Download/extract lighthouse binary into path
+  become: true
+  unarchive:
+    src: "https://github.com/sigp/lighthouse/releases/download/{{ lighthouse_version }}/lighthouse-{{ lighthouse_version }}-x86_64-unknown-linux-gnu.tar.gz"
+    remote_src: yes
+    dest: /usr/local/bin
+    mode: 0755
+
+- name: Copy lcli binary into path
+  become: true
+  copy:
+    src: files/lcli
+    dest: /usr/local/bin
+    mode: 0755
+
+# Wait for asynchronous jobs to complete before moving on
+- name: Waiting for geth to finish downloading
+  async_status:
+    jid: "{{ geth_binary.ansible_job_id }}"
+  register: geth_status
+  until: geth_status.finished
+  retries: 99
+
+- name: Extract geth binary
+  become: true
+  ansible.builtin.unarchive:
+    src: /tmp/geth-alltools-linux-amd64-{{ geth_version_commit }}.tar.gz
+    remote_src: yes
+    dest: /tmp
+  
+- name: Copy needed binaries into path
+  become: true
+  copy:
+    src: /tmp/geth-alltools-linux-amd64-{{ geth_version_commit }}/{{ item }}
+    dest: /usr/local/bin
+    remote_src: true
+    mode: 0755
+  with_items:
+   - geth
+   - bootnode

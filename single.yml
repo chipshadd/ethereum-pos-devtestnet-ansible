@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: false
+  vars_files:
+    - roles/default_vars.yml
+  pre_tasks:
+    - name: Gather subfacts
+      ansible.builtin.setup:
+        gather_subset:
+          - '!all'
+          - '!min'
+          - 'default_ipv4'
+  vars:
+    BOOT_IP: "{{ '127.0.0.1' if target == 'single' else hostvars[play_hosts[0]].ansible_default_ipv4.address }}"
+    IP_ADDRESS: "{{ '127.0.0.1' if target == 'single' else ansible_default_ipv4.address }}"
+  roles:
+    # - bootstrap
+    # - clean
+    # - testnet
+    - loadbalancer

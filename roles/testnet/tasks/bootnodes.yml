@@ -1,0 +1,19 @@
+- name: Generate EL bootnode boot.key
+  run_once: true
+  shell: bootnode -genkey {{ datadir}}/bootnode.key -writeaddress
+  register: enode_key
+
+- name: Generate CL bootnode enr
+  run_once: true
+  shell: | 
+    lcli generate-bootnode-enr \
+    --ip {{ BOOT_IP }} \
+    --udp-port {{ lighthouse.bootnode.port }} \
+    --tcp-port {{ lighthouse.bootnode.port }} \
+    --genesis-fork-version {{ genesis_fork_version }} \
+    --output-dir {{ datadir }}/bootnode
+
+- name: Register ENR
+  run_once: true
+  shell: cat {{ datadir }}/bootnode/enr.dat | cut -d':' -f2
+  register: boot_enr

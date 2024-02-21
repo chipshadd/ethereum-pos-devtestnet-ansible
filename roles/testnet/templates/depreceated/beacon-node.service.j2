@@ -1,0 +1,34 @@
+[Unit]
+Description=LightHouse beacon node
+After=network.target
+Wants=network.target
+[Service]
+User={{ ansible_user }}
+Group={{ ansible_user }}
+Type=exec
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/lighthouse bn \
+{% if lighthouse.beacon_node.extra_flags is iterable() %}
+{% for item in lighthouse.beacon_node.extra_flags %}
+    {{ item }} \
+{% endfor %}
+{% endif %}
+    --datadir {{ datadir }}/beacon \
+    --testnet-dir {{ testnetdir }} \
+    --enr-address 0.0.0.0 \
+    --enr-udp-port {{ lighthouse.beacon_node.enr_udp_port }} \
+    --enr-tcp-port {{ lighthouse.beacon_node.enr_tcp_port }} \
+    --enr-quic-port {{ lighthouse.beacon_node.enr_quic_port }} \
+    --port {{ lighthouse.beacon_node.port }} \
+    --quic-port {{ lighthouse.beacon_node.quic_port }} \
+    --http-port {{ lighthouse.beacon_node.http_port }} \
+    --target-peers {{  (groups['nodes']|count) - 1 }} \
+    --execution-endpoint http://localhost:{{ geth.node.authrpc.port }} \
+    --execution-jwt {{ datadir }}/geth-node/geth/jwtsecret
+
+StandardOutput=append:{{ datadir }}/logs/beacon-node.log
+StandardError=append:{{ datadir }}/logs/beacon-node.log
+
+[Install]
+WantedBy=default.target

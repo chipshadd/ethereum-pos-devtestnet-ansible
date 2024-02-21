@@ -1,0 +1,52 @@
+# All initial tasks, run these again if you want to reboot the network
+- name: Ensure logging directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ datadir }}"
+    - "{{ basedir }}/logs"
+    - "{{ testnetdir }}"
+
+# Generate wallets
+- name: Generate wallets
+  run_once: true
+  shell: |
+    geth --datadir {{ datadir }} --password <(echo -n {{ wallet_password }}) account new | grep -oP '0x[A-Za-z0-9]+'
+  args:
+    executable: /bin/bash
+  loop: "{{ range(number_of_wallets) }}"
+  register: initial_wallets
+
+# Grab current time
+- name: Register current epoch time
+  delegate_to: localhost
+  shell: echo $(($(date -u '+%s') + {{ genesis_delay }}))
+  register: genesis_time
+
+# Populate genesis file with timestamp, initial wallets and other settings
+- name: Template out genesis file
+  vars:
+    capella_time: "{{ genesis_time.stdout|int + (capella_fork_epoch * lookup('vars',spec_preset)  * seconds_per_slot) }}"
+    cancun_time: "{{ genesis_time.stdout|int + (deneb_fork_epoch * lookup('vars',spec_preset) * seconds_per_slot) }}"
+  template:
+    src: genesis.json.j2
+    dest: "{{ datadir }}/genesis.json"
+
+# Initialize geth database
+- name: geth init
+  shell: geth init --datadir {{ datadir }}/geth-node {{ datadir }}/genesis.json
+  when: target != "single"
+  async: 1000
+  poll: 0
+
+# Different behavior when setting up on a single node/local host
+- name: geth init
+  shell: geth init --datadir {{ datadir }}/geth-node{{ ansible_loop.index }} {{ datadir }}/genesis.json
+  loop: "{{ range(nodecount|int) }}"
+  loop_control:
+    extended: true
+  when: target == "single"
+  async: 1000
+  poll: 0

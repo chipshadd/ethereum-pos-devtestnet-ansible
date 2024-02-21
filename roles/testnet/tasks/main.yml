@@ -1,0 +1,26 @@
+- name: Init
+  include_tasks: init.yml
+  when: init == true
+
+- name: Fetch genesis block's hash
+  include_tasks: genesis_block.yml
+
+- name: Create test network and validators
+  include_tasks: network.yml
+  when: init == true
+
+- name: Generate bootnode information
+  include_tasks: bootnodes.yml
+
+- name: Template out management script
+  vars:
+    script_name: "{{ 'manage.sh.j2' if target == 'multi' else 'manage_singlehost.sh.j2'}}"
+  template:
+    src: "{{ script_name }}"
+    dest: "{{ basedir }}/manage.sh"
+    mode: 0755
+
+- name: Fire it all up!
+  shell: nohup {{ basedir }}/manage.sh start > /dev/null 2>&1
+  async: 1000
+  poll: 0

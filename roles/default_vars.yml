@@ -1,0 +1,87 @@
+# General settings
+init: true # Wipes out everything and starts fresh, Disable this if running plays against already established networks
+target: multi
+nodecount: "{{ play_hosts|count }}" # Override this with the number of execution/consensus nodes you want to run on a single target
+geth_version_commit: 1.13.11-8f7eb9cc
+lighthouse_version: "v4.6.0" # If the lighthouse version changes, you may need to re-compile lcli
+basedir: /home/ubuntu/.lighthouse
+datadir: /home/ubuntu/.lighthouse/testnet
+testnetdir: /home/ubuntu/.lighthouse/eth2
+
+# Wallets
+number_of_wallets: 2
+wallet_password: 1234
+starting_balance: 100000
+
+
+# Network settings
+difficulty: 0x01
+deposit_contract_address: 4242424242424242424242424242424242424242
+genesis_fork_version: "0x42424242"
+genesis_delay: 360 # Give ansible time to set everything up 
+network_id: 42420
+spec_preset: mainnet
+seconds_per_slot: 3
+seconds_per_eth1_block: 3
+proposer_score_boost: 40
+## Hard fork configs
+altair_fork_epoch: 0
+bellatrix_fork_epoch: 0
+capella_fork_epoch: 1
+deneb_fork_epoch: 2
+ttd: 0
+
+
+
+# Geth related settings
+geth:
+  init:
+    extra_flags:
+  bootnode:
+    port: 30301
+    extra_flags:
+  node:
+    port: 30303
+    syncmode: full
+    http:
+      port: 8545
+    api: "engine,eth,web3,net,debug"
+    authrpc:
+      port: 8551
+    extra_flags:
+      - --http
+      - --http.addr 0.0.0.0
+      - --http.corsdomain '*'
+
+# Lighthouse related settings
+lighthouse:
+  beacon_node:
+    port: 9001
+    enr_tcp_port: 9001
+    enr_udp_port: 9001
+    enr_quic_port: 9101
+    quic_port: 9101
+    http_port: 5052
+    extra_flags:
+      - --http
+      - --http-address 0.0.0.0
+      - --subscribe-all-subnets
+      - --enable-private-discovery
+      - --disable-peer-scoring
+      - --staking
+      - --disable-packet-filter
+      - --http-allow-sync-stalled
+  validator:
+    http_port: 5062
+    extra_flags:
+      - --http
+      - --http-address 0.0.0.0
+      - --unencrypted-http-transport
+      - --init-slashing-protection
+  bootnode:
+    port: 4242
+    extra_flags:
+      - --disable-packet-filter
+
+validator_count: 80
+genesis_validator_count: 80

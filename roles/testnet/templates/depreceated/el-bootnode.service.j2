@@ -1,0 +1,23 @@
+[Unit]
+Description=Geth execution layer boot node
+After=network.target
+Wants=network.target
+[Service]
+User={{ ansible_user }}
+Group={{ ansible_user }}
+Type=exec
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/bootnode \
+{% if geth.bootnode.extra_flags is iterable() %}
+{% for item in geth.bootnode.extra_flags %}
+    {{ item }} \
+{% endfor %}
+{% endif %}
+    -nodekey {{ datadir }}/bootnode.key
+
+StandardOutput=append:{{ datadir }}/logs/el-bootnode.log
+StandardError=append:{{ datadir }}/logs/el-bootnode.log
+
+[Install]
+WantedBy=default.target

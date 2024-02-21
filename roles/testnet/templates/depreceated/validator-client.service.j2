@@ -1,0 +1,26 @@
+[Unit]
+Description=LightHouse validator client
+After=network.target
+Wants=network.target
+[Service]
+User={{ ansible_user }}
+Group={{ ansible_user }}
+Type=exec
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/lighthouse vc \
+{% if lighthouse.validator.extra_flags is iterable() %}
+{% for item in lighthouse.validator.extra_flags %}
+    {{ item }} \
+{% endfor %}
+{% endif %}
+	--datadir {{ datadir }}/beacon \
+	--testnet-dir {{ testnetdir }} \
+	--beacon-nodes http://localhost:{{ lighthouse.beacon_node.http_port }} \
+	--suggested-fee-recipient {{ initial_wallets.results[0].stdout }}
+
+StandardOutput=append:{{ datadir }}/logs/validator-client.log
+StandardError=append:{{ datadir }}/logs/validator-client.log
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,2 @@
+geth_version_commit: 1.13.11-8f7eb9cc
+lighthouse_version: "v4.6.0" # If the lighthouse version changes, you may need to re-compile lcli

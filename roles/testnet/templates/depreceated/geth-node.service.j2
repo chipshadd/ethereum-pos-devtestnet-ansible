@@ -1,0 +1,29 @@
+[Unit]
+Description=Geth node
+After=network.target
+Wants=network.target
+[Service]
+User={{ ansible_user }}
+Group={{ ansible_user }}
+Type=exec
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/geth \
+{% if geth.node.extra_flags is iterable() %}
+{% for item in geth.node.extra_flags %}
+    {{ item }} \
+{% endfor %}
+{% endif %}
+    --datadir {{ datadir }}/geth-node \
+    --http.api {{ geth.node.api }} \
+    --networkid {{ network_id }} \
+    --syncmode {{ geth.node.syncmode }} \
+    --bootnodes enode://{{ enode_key }}@{{ play_hosts[0] }}:{{ geth.bootnode.port }} \
+    --port {{ geth.node.port }} \
+    --http.port {{ geth.node.http.port}} \
+    --authrpc.port {{ geth.node.authrpc.port }}
+
+StandardOutput=append:{{ datadir }}/logs/geth-node.log
+StandardError=append:{{ datadir }}/logs/geth-node.log
+[Install]
+WantedBy=default.target

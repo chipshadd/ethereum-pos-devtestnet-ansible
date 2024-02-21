@@ -1,0 +1,20 @@
+- name: Install nginx package
+  become: true
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: template out config file
+  become: true
+  vars:
+    conf_name: "{{ 'testnet.j2' if target == 'multi' else 'testnet_single.j2'}}"
+  template:
+    src: "{{ conf_name }}"
+    dest: /etc/nginx/conf.d/testnet.conf
+
+- name: Reload and Start up nginx
+  become: true
+  systemd:
+    name: nginx
+    daemon_reload: true
+    state: started

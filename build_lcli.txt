@@ -1,0 +1,24 @@
+###########################################
+## Bulding lcli
+# Package dependencies:
+- cmake
+- libclang-dev
+- clang
+- llvm-dev
+- pkg-config
+- g++
+- git
+- jq
+- cargo
+
+# Cant trust apt to manage rust
+## Clean out previous installation of rust
+sudo apt-get remove rust*
+## Install rust the preferred way
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Build lighthouse
+git clone https://github.com/sigp/lighthouse.git
+cd lighthouse
+make install-lcli
+##############################################

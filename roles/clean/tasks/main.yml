@@ -1,0 +1,16 @@
+- name: Nuke
+  file:
+    path: "{{ basedir }}"
+    state: absent
+  when: init == true
+
+- name: Shutdown all related services
+  become: true
+  ignore_errors: true
+  shell: pkill {{ item }}
+  async: 1000
+  poll: 0
+  with_items:
+    - geth
+    - bootnode
+    - lighthouse

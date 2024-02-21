@@ -1,0 +1,20 @@
+- name: Start geth node
+  run_once: true
+  shell: nohup geth --datadir {{ datadir }}/geth-node --networkid {{ network_id }} --http --http.api "eth" >/dev/null 2>&1 &
+  args:
+    executable: /bin/bash
+
+- name: Get genesis block hash
+  run_once: true
+  shell: geth attach --exec 'eth.getBlockByNumber(0)["hash"]' http://localhost:8545
+  args:
+    executable: /bin/bash
+  register: genesis_block_hash
+  until: genesis_block_hash.rc == 0
+  retries: 500
+  delay: 1
+
+- name: Shutdown geth node
+  become: true
+  run_once: true
+  shell: pkill geth

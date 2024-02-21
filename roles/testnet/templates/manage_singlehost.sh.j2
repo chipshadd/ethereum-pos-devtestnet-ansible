@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+
+stop() {
+{% if inventory_hostname != play_hosts[0] %}
+    if [[ $1 == "geth-bootnode" || $1 == "lh-bootnode" ]]; then
+        echo "This node is not the designated $1, skipping..."
+        return
+    fi
+{% endif %}
+    case "$1" in
+        geth-bootnode )
+            APP_NAME="$1" ;;
+        geth-node* )
+            APP_NAME="$1" ;;
+        lh-bootnode )
+            APP_NAME="$1" ;;
+        beacon-node* )
+            APP_NAME="$1" ;;
+        validators )
+            APP_NAME="$1" ;;
+        all )
+            stop "validators"
+            stop "beacon-node"
+            stop "lh-bootnode"
+            stop "geth-node"
+            stop "geth-bootnode"
+            ;;
+        * )
+            echo "Invalid app. Expecting one of: geth-bootnode,geth-node,lh-bootnode,beacon-node,validators"
+            exit ;;
+    esac
+    kill $(cat {{ basedir }}/$APP_NAME.pid)
+    rm {{ basedir }}/$APP_NAME.pid
+}
+
+status () {
+{% if inventory_hostname != play_hosts[0] %}
+    if [[ $1 == "geth-bootnode" || $1 == "lh-bootnode" ]]; then
+        echo "This node is not the designated $1, skipping..."
+        return
+    fi
+{% endif %}
+    APP_NAME="$1"
+    case "$APP_NAME" in
+        geth-bootnode ) ;;
+{% for num in range(nodecount) %}
+        geth-node{{ loop.index }} ) ;;
+        beacon-node{{ loop.index }} ) ;;
+{% endfor %}
+        lh-bootnode ) ;;
+        validators ) ;;
+        all )
+            status "validators"
+{% for num in range(nodecount) %}
+            status "beacon-node{{ loop.index }}"
+            status "geth-node{{ loop.index }}"
+{% endfor %}
+            status "lh-bootnode"
+            status "geth-bootnode"
+            exit
+            ;;
+        * )
+            echo "Invalid app. Expecting one of: geth-bootnode,geth-node,lh-bootnode,beacon-node,validators"
+            exit ;;
+    esac
+    if [[ -f {{ basedir }}/$APP_NAME.pid ]]; then
+        PID=$(cat {{ basedir }}/$APP_NAME.pid)
+        if ps -p $PID > /dev/null; then
+            STATE="Up ($PID)"
+            DESC=$(ps -p $PID -o command | sed '2p;d')
+        else
+            STATE="Down"
+            DESC="PID file found but component was not found to be running. Removing PID file."
+            rm -f {{ basedir }}/$APP_NAME.pid
+        fi
+    else
+        STATE="Down"
+        DESC="PID not found"
+    fi
+    echo "${APP_NAME}:"
+    echo "  | State: $STATE"
+    echo "  | $DESC"
+    echo ""
+}
+
+start () {
+{% if inventory_hostname != play_hosts[0] %}
+    if [[ $1 == "geth-bootnode" || $1 == "lh-bootnode" ]]; then
+        echo "This node is not the designated $1, skipping..."
+        return
+    fi
+{% endif %}
+    APP_NAME="$1"
+    case "$APP_NAME" in
+        geth-bootnode )
+            read -r -d '' CMD <<END
+/usr/local/bin/bootnode \
+{% if geth.bootnode.extra_flags is iterable() %}
+{% for item in geth.bootnode.extra_flags %}
+{{ item }} \
+{% endfor %}
+{% endif %}
+-verbosity 5 \
+-nodekey {{ datadir }}/bootnode.key >> {{ basedir }}/logs/$APP_NAME.log 2>&1
+END
+            ;;
+{% for num in range(nodecount) %}
+        geth-node{{ loop.index }} )
+            read -r -d '' CMD <<END
+/usr/local/bin/geth \
+{% if geth.node.extra_flags is iterable() %}
+{% for item in geth.node.extra_flags %}
+{{ item }} \
+{% endfor %}
+{% endif %}
+--datadir {{ datadir }}/geth-node{{ loop.index }} \
+--http.api {{ geth.node.api }} \
+--networkid {{ network_id }} \
+--syncmode {{ geth.node.syncmode }} \
+--bootnodes enode://{{ enode_key.stdout }}@{{ BOOT_IP }}:{{ geth.bootnode.port }} \
+--port {{ geth.node.port + loop.index }} \
+--http.port {{ geth.node.http.port + loop.index }} \
+--authrpc.port {{ geth.node.authrpc.port + loop.index }} >> {{ basedir }}/logs/${APP_NAME}{{ loop.index }}.log 2>&1 
+END
+            ;;
+        beacon-node{{ loop.index }} )
+            read -r -d '' CMD <<END
+/usr/local/bin/lighthouse bn \
+{% if lighthouse.beacon_node.extra_flags is iterable() %}
+{% for item in lighthouse.beacon_node.extra_flags %}
+{{ item }} \
+{% endfor %}
+{% endif %}
+--datadir {{ datadir }}/beacon{{ loop.index }} \
+--testnet-dir {{ testnetdir }} \
+--enr-address {{ IP_ADDRESS }} \
+--enr-udp-port {{ lighthouse.beacon_node.enr_udp_port + loop.index }} \
+--enr-tcp-port {{ lighthouse.beacon_node.enr_tcp_port + loop.index }} \
+--enr-quic-port {{ lighthouse.beacon_node.enr_quic_port + loop.index }} \
+--port {{ lighthouse.beacon_node.port + loop.index }} \
+--quic-port {{ lighthouse.beacon_node.quic_port + loop.index }} \
+--http-port {{ lighthouse.beacon_node.http_port + loop.index }} \
+--target-peers {{  nodecount|int - 1 }} \
+--execution-endpoint http://localhost:{{ geth.node.authrpc.port + loop.index }} \
+--boot-nodes {{ boot_enr.stdout }} \
+--execution-jwt {{ datadir }}/geth-node{{ loop.index }}/geth/jwtsecret >> {{ basedir }}/logs/${APP_NAME}{{ loop.index }}.log 2>&1
+END
+            ;;
+{% endfor %}
+        lh-bootnode )
+            read -r -d '' CMD <<END
+/usr/local/bin/lighthouse boot_node \
+--testnet-dir {{ testnetdir }} \
+--port {{ lighthouse.bootnode.port }} \
+--listen-address 0.0.0.0 \
+--network-dir {{ datadir }}/bootnode >> {{ basedir }}/logs/$APP_NAME.log 2>&1
+END
+            ;;
+        validators )
+            read -r -d '' CMD <<END
+/usr/local/bin/lighthouse vc \
+{% if lighthouse.validator.extra_flags is iterable() %}
+{% for item in lighthouse.validator.extra_flags %}
+{{ item }}  \
+{% endfor %}
+{% endif %}
+--datadir {{ datadir }}/beacon \
+--testnet-dir {{ testnetdir }} \
+--beacon-nodes {% for num in range(nodecount) %}http://localhost:{{ lighthouse.beacon_node.http_port + loop.index }}{% if not loop.last %},{% endif %}{% endfor %}  \
+--http-port {{ lighthouse.validator.http_port }} \
+--suggested-fee-recipient {{ initial_wallets.results[0].stdout }} >> {{ basedir }}/logs/$APP_NAME.log 2>&1
+END
+            ;;
+        all )
+            start_all
+            exit
+            ;;
+        * )
+            echo "Invalid component . Expecting one of: geth-bootnode,geth-node#,lh-bootnode,beacon-node#,validators"
+            exit ;;
+    esac
+    if [[ -f {{ basedir }}/$APP_NAME.pid ]]; then
+        if ps -p `cat {{ basedir }}/$APP_NAME.pid` > /dev/null; then
+            echo "Process is already running."
+            status $APP_NAME
+            exit
+        else
+            echo "Old PID file found"
+            echo "Deleting old PID file"
+            rm -f {{ basedir }}/$APP_NAME.pid
+        fi
+    fi
+
+    eval "$CMD &" >> {{ basedir }}/logs/$APP_NAME.log 2>&1
+    echo "$!" > {{ basedir }}/$APP_NAME.pid
+    status $APP_NAME
+}
+
+start_all() {
+    stop all
+    start "lh-bootnode"
+    start "geth-bootnode"
+    sleep 10
+{% for num in range(nodecount) %}
+    start "geth-node{{ loop.index }}"
+{% endfor %}
+    sleep 10
+{% for num in range(nodecount) %}
+    start "beacon-node{{ loop.index }}"
+{% endfor %}
+    sleep 10
+    start "validators"
+}
+
+
+case $1 in
+    start )
+        shift
+        if [[ -z $1 ]]; then
+            start all
+        else
+            start $1
+        fi
+        ;;
+    status )
+        shift
+        if [[ -z $1 ]]; then
+            status all
+        else
+            status $1
+        fi
+        ;;
+    stop )
+        shift
+        if [[ -z $1 ]]; then
+            stop all
+        else
+            stop $1
+        fi
+        ;;
+    *)
+        echo "Invalid argument.  Expecting one of: status,stop with one of the following (none for all): geth-bootnode,geth-node#,lh-bootnode,beacon-node#,validators"
+        ;;
+esac

@@ -1,0 +1,21 @@
+[Unit]
+Description=LightHouse consensus layer boot node
+After=network.target
+Wants=network.target
+[Service]
+User={{ ansible_user }}
+Group={{ ansible_user }}
+Type=exec
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/lighthouse boot_node \
+    --testnet-dir {{ testnetdir }} \
+    --port {{ lighthouse.bootnode.port }} \
+    --listen-address 0.0.0.0 \
+    --network-dir {{ datadir }}/bootnode
+
+StandardOutput=append:{{ datadir }}/logs/cl-bootnode.log
+StandardError=append:{{ datadir }}/logs/cl-bootnode.log
+
+[Install]
+WantedBy=default.target
