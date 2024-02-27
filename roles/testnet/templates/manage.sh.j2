@@ -97,6 +97,7 @@ start () {
 {% endfor %}
 {% endif %}
 -verbosity 5 \
+-addr {{ IP_ADDRESS }}:{{ geth.bootnode.port }} \
 -nodekey {{ datadir }}/bootnode.key >> {{ basedir }}/logs/$APP_NAME.log 2>&1
 END
             ;;
