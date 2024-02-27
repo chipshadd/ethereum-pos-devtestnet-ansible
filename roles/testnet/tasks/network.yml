@@ -5,9 +5,7 @@
     --deposit-contract-address {{ deposit_contract_address }} \
     --testnet-dir {{ testnetdir }} \
     --min-genesis-active-validator-count {{ genesis_validator_count }} \
-    --min-genesis-time {{ genesis_time.stdout }} \
-    --genesis-delay {{ genesis_delay }} \
-    --genesis-fork-version {{ genesis_fork_version }} \
+    --genesis-time {{ genesis_time.stdout }} \
     --altair-fork-epoch {{ altair_fork_epoch }} \
     --bellatrix-fork-epoch {{ bellatrix_fork_epoch }} \
     --capella-fork-epoch {{ capella_fork_epoch }} \
