@@ -45,7 +45,7 @@ geth:
     syncmode: full
     http:
       port: 8545
-    api: "engine,eth,web3,net,debug"
+    api: "admin,engine,eth,web3,net,debug"
     authrpc:
       port: 8551
     extra_flags:
