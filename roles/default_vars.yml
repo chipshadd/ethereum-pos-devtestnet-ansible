@@ -11,11 +11,11 @@ testnetdir: /home/ubuntu/.lighthouse/eth2
 # Wallets
 number_of_wallets: 2
 wallet_password: 1234
-starting_balance: 100000
+starting_balance: 1000000000000000000000
 
 
 # Network settings
-difficulty: 0x01
+difficulty: "0x01"
 deposit_contract_address: 4242424242424242424242424242424242424242
 genesis_fork_version: "0x42424242"
 genesis_delay: 360 # Give ansible time to set everything up 
@@ -85,3 +85,7 @@ lighthouse:
 
 validator_count: 80
 genesis_validator_count: 80
+
+import_wallets:
+ - "0xcCb4B8Ac2F93c92bb5523db14D30A74C87cD27F4"
+ - "0x7bE167a0779555ae192639abb2e053Ed814Ffd7f"
