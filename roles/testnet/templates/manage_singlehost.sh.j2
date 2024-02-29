@@ -46,21 +46,21 @@ status () {
 {% for num in range(nodecount) %}
         geth-node{{ loop.index }} ) ;;
         beacon-node{{ loop.index }} ) ;;
+        validators{{ loop.index }} ) ;;
 {% endfor %}
         lh-bootnode ) ;;
-        validators ) ;;
         all )
-            status "validators"
 {% for num in range(nodecount) %}
             status "beacon-node{{ loop.index }}"
             status "geth-node{{ loop.index }}"
+            status "validators{{ loop.index }}"
 {% endfor %}
             status "lh-bootnode"
             status "geth-bootnode"
             exit
             ;;
         * )
-            echo "Invalid app. Expecting one of: geth-bootnode,geth-node,lh-bootnode,beacon-node,validators"
+            echo "Invalid app. Expecting one of: geth-bootnode,geth-node,lh-bootnode,beacon-node,validators#"
             exit ;;
     esac
     if [[ -f {{ basedir }}/$APP_NAME.pid ]]; then
@@ -120,7 +120,7 @@ END
 --bootnodes enode://{{ enode_key.stdout }}@{{ BOOT_IP }}:{{ geth.bootnode.port }} \
 --port {{ geth.node.port + loop.index }} \
 --http.port {{ geth.node.http.port + loop.index }} \
---authrpc.port {{ geth.node.authrpc.port + loop.index }} >> {{ basedir }}/logs/${APP_NAME}{{ loop.index }}.log 2>&1 
+--authrpc.port {{ geth.node.authrpc.port + loop.index }} >> {{ basedir }}/logs/${APP_NAME}.log 2>&1 
 END
             ;;
         beacon-node{{ loop.index }} )
@@ -131,7 +131,7 @@ END
 {{ item }} \
 {% endfor %}
 {% endif %}
---datadir {{ datadir }}/beacon{{ loop.index }} \
+--datadir {{ datadir }}/node_{{ loop.index }} \
 --testnet-dir {{ testnetdir }} \
 --enr-address {{ IP_ADDRESS }} \
 --enr-udp-port {{ lighthouse.beacon_node.enr_udp_port + loop.index }} \
@@ -143,9 +143,24 @@ END
 --target-peers {{  nodecount|int - 1 }} \
 --execution-endpoint http://localhost:{{ geth.node.authrpc.port + loop.index }} \
 --boot-nodes {{ boot_enr.stdout }} \
---execution-jwt {{ datadir }}/geth-node{{ loop.index }}/geth/jwtsecret >> {{ basedir }}/logs/${APP_NAME}{{ loop.index }}.log 2>&1
+--execution-jwt {{ datadir }}/geth-node{{ loop.index }}/geth/jwtsecret >> {{ basedir }}/logs/${APP_NAME}.log 2>&1
 END
             ;;
+        validators{{ loop.index }} )
+            read -r -d '' CMD <<END
+/usr/local/bin/lighthouse vc \
+{% if lighthouse.validator.extra_flags is iterable() %}
+{% for item in lighthouse.validator.extra_flags %}
+{{ item }}  \
+{% endfor %}
+{% endif %}
+--datadir {{ datadir }}/node_{{ loop.index }} \
+--testnet-dir {{ testnetdir }} \
+--beacon-nodes http://localhost:{{ lighthouse.beacon_node.http_port + loop.index }}  \
+--http-port {{ lighthouse.validator.http_port + loop.index }} \
+--suggested-fee-recipient {{ initial_wallets.results[0].stdout }} >> {{ basedir }}/logs/$APP_NAME.log 2>&1
+END
+        ;;
 {% endfor %}
         lh-bootnode )
             read -r -d '' CMD <<END
@@ -156,27 +171,12 @@ END
 --network-dir {{ datadir }}/bootnode >> {{ basedir }}/logs/$APP_NAME.log 2>&1
 END
             ;;
-        validators )
-            read -r -d '' CMD <<END
-/usr/local/bin/lighthouse vc \
-{% if lighthouse.validator.extra_flags is iterable() %}
-{% for item in lighthouse.validator.extra_flags %}
-{{ item }}  \
-{% endfor %}
-{% endif %}
---datadir {{ datadir }}/beacon \
---testnet-dir {{ testnetdir }} \
---beacon-nodes {% for num in range(nodecount) %}http://localhost:{{ lighthouse.beacon_node.http_port + loop.index }}{% if not loop.last %},{% endif %}{% endfor %}  \
---http-port {{ lighthouse.validator.http_port }} \
---suggested-fee-recipient {{ initial_wallets.results[0].stdout }} >> {{ basedir }}/logs/$APP_NAME.log 2>&1
-END
-            ;;
         all )
             start_all
             exit
             ;;
         * )
-            echo "Invalid component . Expecting one of: geth-bootnode,geth-node#,lh-bootnode,beacon-node#,validators"
+            echo "Invalid component . Expecting one of: geth-bootnode,geth-node#,lh-bootnode,beacon-node#,validators#"
             exit ;;
     esac
     if [[ -f {{ basedir }}/$APP_NAME.pid ]]; then
@@ -209,7 +209,9 @@ start_all() {
     start "beacon-node{{ loop.index }}"
 {% endfor %}
     sleep 10
-    start "validators"
+{% for num in range(nodecount) %}
+    start "validators{{ loop.index }}"
+{% endfor %}
 }
 
 
@@ -239,6 +241,6 @@ case $1 in
         fi
         ;;
     *)
-        echo "Invalid argument.  Expecting one of: status,stop with one of the following (none for all): geth-bootnode,geth-node#,lh-bootnode,beacon-node#,validators"
+        echo "Invalid argument.  Expecting one of: status,stop with one of the following (none for all): geth-bootnode,geth-node#,lh-bootnode,beacon-node#,validators#"
         ;;
 esac
