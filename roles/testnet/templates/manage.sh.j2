@@ -136,7 +136,7 @@ END
 {{ item }} \
 {% endfor %}
 {% endif %}
---datadir {{ datadir }}/beacon \
+--datadir {{ datadir }}/node_1 \
 --testnet-dir {{ testnetdir }} \
 --enr-address {{ IP_ADDRESS }} \
 --enr-udp-port {{ lighthouse.beacon_node.enr_udp_port }} \
@@ -159,7 +159,7 @@ END
 {{ item }}  \
 {% endfor %}
 {% endif %}
---datadir {{ datadir }}/beacon \
+--datadir {{ datadir }}/node_1 \
 --testnet-dir {{ testnetdir }} \
 --beacon-nodes http://localhost:{{ lighthouse.beacon_node.http_port }} \
 --http-port {{ lighthouse.validator.http_port }} \
