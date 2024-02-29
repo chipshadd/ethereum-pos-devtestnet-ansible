@@ -1,8 +1,17 @@
-- name: Start geth node
+- name: Start geth node - multi host
   run_once: true
   shell: nohup geth --datadir {{ datadir }}/geth-node --networkid {{ network_id }} --http --http.api "eth" >/dev/null 2>&1 &
   args:
     executable: /bin/bash
+  when: target != "single"
+
+# Set different datadir when running on a single node
+- name: Start geth node - single host
+  run_once: true
+  shell: nohup geth --datadir {{ datadir }}/geth-node1 --networkid {{ network_id }} --http --http.api "eth" >/dev/null 2>&1 &
+  args:
+    executable: /bin/bash
+  when: target == "single"
 
 - name: Get genesis block hash
   run_once: true

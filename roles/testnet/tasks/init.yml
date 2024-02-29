@@ -35,14 +35,14 @@
     dest: "{{ datadir }}/genesis.json"
 
 # Initialize geth database
-- name: geth init
+- name: geth init - multi host
   shell: geth init --datadir {{ datadir }}/geth-node {{ datadir }}/genesis.json
   when: target != "single"
   async: 1000
   poll: 0
 
 # Different behavior when setting up on a single node/local host
-- name: geth init
+- name: geth init - single host
   shell: geth init --datadir {{ datadir }}/geth-node{{ ansible_loop.index }} {{ datadir }}/genesis.json
   loop: "{{ range(nodecount|int) }}"
   loop_control:
