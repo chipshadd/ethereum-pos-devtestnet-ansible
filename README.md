@@ -192,6 +192,9 @@ lighthouse:
         ```
         Additional flags to pass to the `lcli boot_node` command
 
+### Import wallet addresses to prefund
+`import_wallets: [ eth_address ]` - List of eth addresses to import into the genesis block 
+
 ## Management script
 There is a management script to manage and query the status of all the components.  It will be placed at `{{ basedir }}`
 ### Usage:
